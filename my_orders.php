@@ -6,7 +6,10 @@ include "user_header.php";
 $user = mysqli_fetch_assoc(
   mysqli_query($conn,"SELECT * FROM users WHERE email='".$_SESSION['user']."'")
 );
-
+if(!isset($_SESSION['user'])){
+    header("Location: index.php");
+    exit();
+}
 /* FETCH ORDERS */
 $orders = mysqli_query($conn,"
   SELECT * FROM orders 
@@ -46,8 +49,18 @@ while($o=mysqli_fetch_assoc($orders)){
   <td><?php echo date("d M Y h:i A",strtotime($o['created_at'])); ?></td>
   <td>₹<?php echo number_format($o['total'],2); ?></td>
   <td>
-    <span class="badge"><?php echo $o['status']; ?></span>
-  </td>
+<span class="badge"
+style="background:
+<?php
+if($o['status']=="Pending") echo '#f39c12';
+else if($o['status']=="Preparing") echo '#3498db';
+else if($o['status']=="Ready") echo '#8e44ad';
+else if($o['status']=="Completed") echo '#2ecc71';
+else if($o['status']=="Delivered") echo '#27ae60';
+?>">
+<?php echo $o['status']; ?>
+</span>
+</td>
   <td>
     <a href="?details=<?php echo $o['id']; ?>">View</a>
   </td>

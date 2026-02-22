@@ -1,169 +1,98 @@
 <?php
 include "config/db.php";
+include "user_header.php";
 
-$error = "";
-
-if (isset($_POST['login'])) {
-
-    $email = trim($_POST['email']);
-    $password = trim($_POST['password']);
-
-    if ($email == "" || $password == "") {
-        $error = "Please enter email and password";
-    } else {
-
-        $q = mysqli_query(
-            $conn,
-            "SELECT * FROM users 
-             WHERE email='$email' 
-             AND password='$password' 
-             AND role='user'"
-        );
-
-        if (mysqli_num_rows($q) == 1) {
-
-            $u = mysqli_fetch_assoc($q);
-
-            /* CHECK USER STATUS */
-            if ($u['status'] == "Inactive") {
-                $error = "Your account is inactive. Contact admin.";
-            } else {
-                $_SESSION['user'] = $email;
-                header("Location: menu.php");
-            }
-
-        } else {
-            $error = "Invalid email or password";
-        }
-    }
+/* START SESSION (required to check login) */
+if (session_status() === PHP_SESSION_NONE) {
+  session_start();
 }
+
+/* CATEGORY FILTER */
+$cat = "All";
+if (isset($_GET['cat'])) {
+  $cat = $_GET['cat'];
+}
+
+/* QUERY BASED ON CATEGORY */
+if ($cat == "All") {
+  $sql = "SELECT * FROM items 
+          WHERE status='Available'";
+} else {
+  $sql = "SELECT * FROM items 
+          WHERE category='$cat' 
+          AND status='Available'";
+}
+
+$items = mysqli_query($conn, $sql);
+
+/* CHECK USER LOGIN */
+$isLoggedIn = isset($_SESSION['user']);
 ?>
 
 <!DOCTYPE html>
 <html>
+
 <head>
-<!-- <link rel="stylesheet" href="assets/style.css"> -->
- <style>/* PAGE BACKGROUND */
-body{
-    margin:0;
-    font-family: 'Segoe UI', Tahoma, sans-serif;
-    background: linear-gradient(135deg,#eef2f7,#ffffff);
-}
-
-/* CENTER CONTAINER */
-.container{
-    width: 520px;
-    margin: 60px auto;
-    background: #ffffff;
-    padding: 35px 40px;
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-}
-
-/* HEADING */
-.container h2{
-    margin-bottom: 25px;
-    font-size: 26px;
-    color: #2c3e50;
-}
-
-/* INPUT FIELDS */
-input{
-    width: 100%;
-    padding: 14px 15px;
-    margin-bottom: 18px;
-    border: 1px solid #dcdcdc;
-    border-radius: 6px;
-    font-size: 15px;
-    transition: 0.3s;
-    box-sizing: border-box;
-}
-
-/* INPUT FOCUS EFFECT */
-input:focus{
-    border-color: #27ae60;
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(39,174,96,0.15);
-}
-
-/* BUTTON */
-button{
-    width: 100%;
-    padding: 14px;
-    background: #27ae60;
-    border: none;
-    border-radius: 6px;
-    color: white;
-    font-size: 16px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: 0.3s;
-}
-
-button:hover{
-    background: #219150;
-}
-
-/* SUCCESS & ERROR MESSAGES */
-.success{
-    color: #27ae60;
-    background: #eafaf1;
-    padding: 10px;
-    border-radius: 6px;
-    margin-bottom: 15px;
-}
-
-.error{
-    color: #e74c3c;
-    background: #fdecea;
-    padding: 10px;
-    border-radius: 6px;
-    margin-bottom: 15px;
-}
-
-/* LOGIN TEXT */
-.container p{
-    margin-top: 18px;
-    font-size: 14px;
-}
-
-.container a{
-    color: #2980b9;
-    text-decoration: none;
-    font-weight: 600;
-}
-
-.container a:hover{
-    text-decoration: underline;
-}
-</style>
+  <link rel="stylesheet" href="assets/style.css">
 </head>
 
 <body>
-<div class="container">
+  <div class="container">
 
-<h2>User Login</h2>
+    <h2>Food Menu</h2>
 
-<?php if ($error != "") { ?>
-    <p style="color:red;font-weight:bold;"><?php echo $error; ?></p>
-<?php } ?>
+    <!-- CATEGORY TABS -->
+    <div style="margin-bottom:15px;">
+      <a href="index.php?cat=All" class="badge">All</a>
+      <a href="index.php?cat=Main" class="badge">Main</a>
+      <a href="index.php?cat=Healthy" class="badge">Healthy</a>
+      <a href="index.php?cat=Drinks" class="badge">Drinks</a>
+    </div>
 
-<form method="post">
-    <input type="email" name="email" placeholder="Email" required>
-    <input type="password" name="password" placeholder="Password" required>
-    <button name="login">Login</button>
-</form>
+    <table>
+      <tr>
+        <th>Photo</th>
+        <th>Item</th>
+        <th>Price</th>
+        <th>Action</th>
+      </tr>
 
-<p>
-    New user? <a href="register.php">Register</a>
-</p>
+      <?php
+      if (mysqli_num_rows($items) == 0) {
+        echo "<tr><td colspan='4'>No items found</td></tr>";
+      }
 
-<p>
-    <a href="admin_login.php">
-        <button type="button">Admin Login</button>
-    </a>
-</p>
+      while ($i = mysqli_fetch_assoc($items)) {
+      ?>
+        <tr>
+          <td>
+            <img src="uploads/<?php echo $i['image']; ?>" width="80">
+          </td>
 
-</div>
+          <td>
+            <b><?php echo $i['name']; ?></b><br>
+            <small><?php echo $i['description']; ?></small>
+          </td>
+
+          <td>₹<?php echo $i['price']; ?></td>
+
+          <td>
+            <?php if ($isLoggedIn) { ?>
+              <a href="cart.php?add=<?php echo $i['id']; ?>">
+                <button>Add to Cart</button>
+              </a>
+            <?php } else { ?>
+              <a href="login.php">
+                <button style="background:#e67e22;">Login to Buy</button>
+              </a>
+            <?php } ?>
+          </td>
+        </tr>
+      <?php } ?>
+
+    </table>
+
+  </div>
 </body>
+
 </html>

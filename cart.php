@@ -2,6 +2,12 @@
 include "config/db.php";
 include "user_header.php";
 
+
+if(!isset($_SESSION['user'])){
+    header("Location: index.php");
+    exit();
+}
+
 /* ADD ITEM */
 if(isset($_GET['add'])){
   $id = $_GET['add'];
@@ -103,8 +109,8 @@ $grand = $subtotal + $tax;
 </table>
 
 <br>
-<a href="place_order.php">
-  <button>Checkout</button>
+<a href="payment.php">
+  <button style="background:#27ae60;">Proceed to Payment</button>
 </a>
 
 <?php } ?>
